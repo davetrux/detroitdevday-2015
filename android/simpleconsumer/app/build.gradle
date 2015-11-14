@@ -1,0 +1,75 @@
+apply plugin: 'com.android.application'
+apply plugin: 'devicefarm'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.1"
+    defaultConfig {
+        applicationId "com.hpe.simpleconsumer"
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode System.getenv("BUILD_NUMBER") as Integer ?: 0
+        versionName "2.0." + System.getenv("BUILD_NUMBER") as String ?: "0-D"
+    }
+    signingConfigs {
+        release {
+            storeFile file("key_store.jks")
+            storePassword "password"
+            keyAlias "alias"
+            keyPassword "password"
+        }
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            debuggable true
+        }
+        qa {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            debuggable true
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            debuggable false
+        }
+    }
+
+    testBuildType "qa"
+}
+
+task zipFeatures(type:Zip) {
+
+        archiveName 'features.zip'
+        from('../calabash/features')
+        include '**/*'
+        into 'features'
+        destinationDir file('../calabash/devicefarm')
+
+}
+
+devicefarm {
+    projectName "Simple Consumer" // required: Must already exists.
+
+    devicePool "Test Devices"
+
+    authentication {
+        accessKey "AWSKEY"
+        secretKey "AWSSECRETKEY"
+    }
+
+    calabash {
+        tests file('../calabash/devicefarm/features.zip')
+    }
+}
+
+dependencies {
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.0.1'
+    compile 'com.google.code.gson:gson:2.3'
+    compile 'com.squareup.retrofit:retrofit:1.7.1'
+}
